@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:camerawesome/camerawesome_plugin.dart';
@@ -5,13 +6,13 @@ import 'package:camerawesome/pigeon.dart';
 import 'package:camerawesome/src/orchestrator/camera_context.dart';
 import 'package:camerawesome/src/orchestrator/states/handlers/filter_handler.dart';
 import 'package:camerawesome/src/photofilters/filters/filters.dart';
-import 'package:collection/collection.dart';
 import 'package:rxdart/rxdart.dart';
 
 class PhotoFilterModel {
-  PhotoFilterModel(this.captureRequest, this.filter);
+  PhotoFilterModel(this.path, this.imageFile, this.filter);
 
-  final CaptureRequest captureRequest;
+  final String path;
+  final File imageFile;
   final Filter filter;
 }
 
@@ -33,7 +34,7 @@ class PhotoCameraState extends CameraState {
         exifPreferences: orchestrator.exifPreferences,
       );
 
-  final CaptureRequestBuilder filePathBuilder;
+  final FilePathBuilder filePathBuilder;
 
   final ExifPreferences exifPreferences;
 
@@ -62,32 +63,24 @@ class PhotoCameraState extends CameraState {
   ///
   /// You can listen to [cameraSetup.mediaCaptureStream] to get updates
   /// of the photo capture (capturing, success/failure)
-  Future<CaptureRequest> takePhoto() async {
-    CaptureRequest captureRequest =
-        await filePathBuilder(sensorConfig.sensors.whereNotNull().toList());
-    final mediaCapture = MediaCapture.capturing(captureRequest: captureRequest);
-    if (!mediaCapture.isPicture) {
-      throw ("CaptureRequest must be a picture. ${captureRequest.when(
-        single: (single) => single.file!.path,
-        multiple: (multiple) => multiple.fileBySensor.values.first!.path,
-      )}");
+  Future<String> takePhoto() async {
+    String path = await filePathBuilder();
+    if (!path.endsWith(".jpg")) {
+      throw ("You can only capture .jpg files with CamerAwesome");
     }
-    _mediaCapture = mediaCapture;
+    _mediaCapture = MediaCapture.capturing(filePath: path);
     try {
-      final succeeded = await CamerawesomePlugin.takePhoto(captureRequest);
+      final succeeded = await CamerawesomePlugin.takePhoto(path);
       if (succeeded) {
-        await FilterHandler()
-            .apply(captureRequest: captureRequest, filter: filter);
-
-        _mediaCapture = MediaCapture.success(captureRequest: captureRequest);
+        await FilterHandler().apply(path: path, filter: filter);
+        _mediaCapture = MediaCapture.success(filePath: path);
       } else {
-        _mediaCapture = MediaCapture.failure(captureRequest: captureRequest);
+        _mediaCapture = MediaCapture.failure(filePath: path);
       }
     } on Exception catch (e) {
-      _mediaCapture =
-          MediaCapture.failure(captureRequest: captureRequest, exception: e);
+      _mediaCapture = MediaCapture.failure(filePath: path, exception: e);
     }
-    return captureRequest;
+    return path;
   }
 
   /// PRIVATES

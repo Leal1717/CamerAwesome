@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:camera_app/utils/file_utils.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:camerawesome/pigeon.dart';
 import 'package:flutter/material.dart';
@@ -53,7 +54,9 @@ class CustomUiExample2 extends StatelessWidget {
             ],
           );
         },
-        saveConfig: SaveConfig.photo(),
+        saveConfig: SaveConfig.photo(
+          pathBuilder: () => path(CaptureMode.photo),
+        ),
         onPreviewTapBuilder: (state) => OnPreviewTap(
           onTap: (Offset position, PreviewSize flutterPreviewSize,
               PreviewSize pixelPreviewSize) {

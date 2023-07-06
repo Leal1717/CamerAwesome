@@ -85,11 +85,7 @@ class PreparingCameraState extends CameraState {
     }
     final grantedPermissions =
         await CamerawesomePlugin.checkAndRequestPermissions(
-      cameraContext.exifPreferences.saveGPSLocation,
-      checkCameraPermissions: true,
-      checkMicrophonePermissions:
-          cameraContext.initialCaptureMode == CaptureMode.video,
-    );
+            cameraContext.exifPreferences.saveGPSLocation);
     if (cameraContext.exifPreferences.saveGPSLocation &&
         !(grantedPermissions?.contains(CamerAwesomePermission.location) ==
             true)) {
@@ -197,8 +193,6 @@ class PreparingCameraState extends CameraState {
       enablePhysicalButton,
       captureMode: nextCaptureMode,
       exifPreferences: cameraContext.exifPreferences,
-      videoOptions: saveConfig?.videoOptions,
-      mirrorFrontCamera: saveConfig?.mirrorFrontCamera ?? false,
     );
     _isReady = true;
     return _isReady;

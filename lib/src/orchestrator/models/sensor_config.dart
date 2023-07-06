@@ -3,15 +3,19 @@
 import 'dart:async';
 
 import 'package:camerawesome/camerawesome_plugin.dart';
+import 'package:camerawesome/src/orchestrator/models/sensor_type.dart';
 import 'package:rxdart/rxdart.dart';
 
-// TODO find a way to explain that this sensorconfig is not bound anymore (user changed sensor for example)
 class SensorConfig {
   late BehaviorSubject<FlashMode> _flashModeController;
 
   late BehaviorSubject<SensorType> _sensorTypeController;
 
+  late BehaviorSubject<bool> _mirrorFrontCameraController;
+
   late Stream<FlashMode> flashMode$;
+
+  late Stream<bool> mirrorFrontCamera$;
 
   late Stream<SensorType> sensorType$;
 
@@ -23,7 +27,9 @@ class SensorConfig {
   late Stream<double> zoom$;
 
   /// [back] or [front] camera
-  final List<Sensor> sensors;
+  final Sensors sensor;
+
+  final String? captureDeviceId;
 
   // /// choose your photo size from the [selectDefaultSize] method
   // late Stream<Size?> previewSize;
@@ -38,33 +44,12 @@ class SensorConfig {
       BehaviorSubject<double>();
   StreamSubscription? _brightnessSubscription;
 
-  SensorConfig.single({
-    Sensor? sensor,
-    FlashMode flashMode = FlashMode.none,
-    double zoom = 0.0,
-    CameraAspectRatios aspectRatio = CameraAspectRatios.ratio_4_3,
-  }) : this._(
-          sensors: [sensor ?? Sensor.position(SensorPosition.back)],
-          flash: flashMode,
-          currentZoom: zoom,
-          aspectRatio: aspectRatio,
-        );
-
-  SensorConfig.multiple({
-    required List<Sensor> sensors,
-    FlashMode flashMode = FlashMode.none,
-    double zoom = 0.0,
-    CameraAspectRatios aspectRatio = CameraAspectRatios.ratio_4_3,
-  }) : this._(
-          sensors: sensors,
-          flash: flashMode,
-          currentZoom: zoom,
-          aspectRatio: aspectRatio,
-        );
-
-  SensorConfig._({
-    required this.sensors,
+  SensorConfig({
+    required this.sensor,
     FlashMode flash = FlashMode.none,
+    bool mirrorFrontCamera = false,
+    SensorType type = SensorType.wideAngle,
+    this.captureDeviceId,
     CameraAspectRatios aspectRatio = CameraAspectRatios.ratio_4_3,
 
     /// Zoom must be between 0.0 (no zoom) and 1.0 (max zoom)
@@ -73,8 +58,11 @@ class SensorConfig {
     _flashModeController = BehaviorSubject<FlashMode>.seeded(flash);
     flashMode$ = _flashModeController.stream;
 
-    _sensorTypeController = BehaviorSubject<SensorType>.seeded(
-        sensors.first.type ?? SensorType.wideAngle);
+    _mirrorFrontCameraController =
+        BehaviorSubject<bool>.seeded(mirrorFrontCamera);
+    mirrorFrontCamera$ = _mirrorFrontCameraController.stream;
+
+    _sensorTypeController = BehaviorSubject<SensorType>.seeded(type);
     sensorType$ = _sensorTypeController.stream;
 
     _zoomController = BehaviorSubject<double>.seeded(currentZoom);
@@ -99,6 +87,9 @@ class SensorConfig {
   /// Returns the current zoom without stream
   double get zoom => _zoomController.value;
 
+  /// Return the current mirrorFrontCamera without stream
+  bool get mirrorFrontCamera => _mirrorFrontCameraController.value;
+
   /// Set manually the [FlashMode] between
   /// [FlashMode.none] no flash
   /// [FlashMode.on] always flashing when taking photo
@@ -107,6 +98,12 @@ class SensorConfig {
   Future<void> setFlashMode(FlashMode flashMode) async {
     await CamerawesomePlugin.setFlashMode(flashMode);
     _flashModeController.sink.add(flashMode);
+  }
+
+  /// Set mirroring front camera (for selfie for ex.)
+  Future<void> setMirrorFrontCamera(bool mirrorFrontCamera) async {
+    await CamerawesomePlugin.setMirrorFrontCamera(mirrorFrontCamera);
+    _mirrorFrontCameraController.sink.add(mirrorFrontCamera);
   }
 
   /// Returns the current flash mode without stream
@@ -175,6 +172,7 @@ class SensorConfig {
     _brightnessController.close();
     _sensorTypeController.close();
     _zoomController.close();
+    _mirrorFrontCameraController.close();
     _flashModeController.close();
     _aspectRatioController.close();
   }

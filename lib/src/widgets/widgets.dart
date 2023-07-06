@@ -7,4 +7,3 @@ export 'filters/filters.dart';
 export 'layout/layout.dart';
 export 'preview/preview.dart';
 export 'utils/utils.dart';
-export 'zoom/zoom.dart';

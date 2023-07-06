@@ -44,8 +44,21 @@ typedef OnImageForAnalysis = Future Function(AnalysisImage image);
 /// - use our built in interface
 /// with the awesome factory
 class CameraAwesomeBuilder extends StatefulWidget {
-  /// Which sensors you want to use
-  final SensorConfig sensorConfig;
+  /// [front] or [back] camera
+  final Sensors sensor;
+
+  final FlashMode flashMode;
+
+  final bool mirrorFrontCamera;
+
+  /// Must be a value between 0.0 (no zoom) and 1.0 (max zoom)
+  final double zoom;
+
+  /// Ratio 1:1 is not supported yet on Android
+  final CameraAspectRatios aspectRatio;
+
+  /// choose if you want to persist user location in image metadata or not
+  final ExifPreferences? exifPreferences;
 
   /// TODO: DOC
   final AwesomeFilter? filter;
@@ -55,6 +68,9 @@ class CameraAwesomeBuilder extends StatefulWidget {
   // one of fitWidth, fitHeight, contain, cover
   // currently only work for Android, this do nothing on iOS
   final CameraPreviewFit previewFit;
+
+  /// Enable audio while video recording
+  final bool enableAudio;
 
   /// Enable physical button (volume +/-) to take photo or record video
   final bool enablePhysicalButton;
@@ -100,11 +116,15 @@ class CameraAwesomeBuilder extends StatefulWidget {
   /// do image analysis
   final bool showPreview;
 
-  final PictureInPictureConfigBuilder? pictureInPictureConfigBuilder;
-
   const CameraAwesomeBuilder._({
-    required this.sensorConfig,
+    required this.sensor,
+    required this.flashMode,
+    required this.zoom,
+    required this.mirrorFrontCamera,
     required this.enablePhysicalButton,
+    required this.aspectRatio,
+    required this.exifPreferences,
+    required this.enableAudio,
     required this.progressIndicator,
     required this.saveConfig,
     required this.onMediaTap,
@@ -120,7 +140,6 @@ class CameraAwesomeBuilder extends StatefulWidget {
     this.previewPadding = EdgeInsets.zero,
     this.previewAlignment = Alignment.center,
     this.showPreview = true,
-    required this.pictureInPictureConfigBuilder,
   });
 
   /// Use the camera with the built-in interface.
@@ -128,10 +147,13 @@ class CameraAwesomeBuilder extends StatefulWidget {
   /// You need to provide a [SaveConfig] to define if you want to take
   /// photos, videos or both and where to save them.
   ///
-  /// You can initiate the camera with a few parameters through the [SensorConfig]:
-  /// - which [sensors] to use ([front] or [back])
+  /// You can initiate the camera with a few parameters:
+  /// - which [sensor] to use ([front] or [back])
   /// - which [flashMode] to use
   /// - how much zoom you want (0.0 = no zoom, 1.0 = max zoom)
+  /// - [enableAudio] when recording a video or not
+  /// - [exifPreferences] to indicate if you want to save GPS location when
+  /// taking photos
   ///
   /// If you want to customize the UI of the camera, you have several options:
   /// - use a [progressIndicator] and define what to do when the preview of the
@@ -145,8 +167,14 @@ class CameraAwesomeBuilder extends StatefulWidget {
   /// [imageAnaysisConfig] and listen to the stream of images with
   /// [onImageForAnalysis].
   CameraAwesomeBuilder.awesome({
-    SensorConfig? sensorConfig,
+    Sensors sensor = Sensors.back,
+    FlashMode flashMode = FlashMode.none,
+    double zoom = 0.0,
+    bool mirrorFrontCamera = false,
     bool enablePhysicalButton = false,
+    CameraAspectRatios aspectRatio = CameraAspectRatios.ratio_4_3,
+    ExifPreferences? exifPreferences,
+    bool enableAudio = true,
     Widget? progressIndicator,
     required SaveConfig saveConfig,
     Function(MediaCapture)? onMediaTap,
@@ -163,12 +191,14 @@ class CameraAwesomeBuilder extends StatefulWidget {
     Widget Function(CameraState state)? middleContentBuilder,
     EdgeInsets previewPadding = EdgeInsets.zero,
     Alignment previewAlignment = Alignment.center,
-    PictureInPictureConfigBuilder? pictureInPictureConfigBuilder,
   }) : this._(
-          sensorConfig: sensorConfig ??
-              SensorConfig.single(
-                sensor: Sensor.position(SensorPosition.back),
-              ),
+          sensor: sensor,
+          flashMode: flashMode,
+          zoom: zoom,
+          mirrorFrontCamera: mirrorFrontCamera,
+          aspectRatio: aspectRatio,
+          exifPreferences: exifPreferences,
+          enableAudio: enableAudio,
           enablePhysicalButton: enablePhysicalButton,
           progressIndicator: progressIndicator,
           builder: (cameraModeState, previewSize, previewRect) {
@@ -192,16 +222,20 @@ class CameraAwesomeBuilder extends StatefulWidget {
           theme: theme ?? AwesomeTheme(),
           previewPadding: previewPadding,
           previewAlignment: previewAlignment,
-          pictureInPictureConfigBuilder: pictureInPictureConfigBuilder,
         );
 
   /// 🚧 Experimental
   ///
   /// Documentation on its way, API might change
   CameraAwesomeBuilder.custom({
-    SensorConfig? sensorConfig,
+    Sensors sensor = Sensors.back,
+    FlashMode flashMode = FlashMode.none,
+    double zoom = 0.0,
     bool mirrorFrontCamera = false,
     bool enablePhysicalButton = false,
+    CameraAspectRatios aspectRatio = CameraAspectRatios.ratio_4_3,
+    ExifPreferences? exifPreferences,
+    bool enableAudio = true,
     Widget? progressIndicator,
     required CameraLayoutBuilder builder,
     required SaveConfig saveConfig,
@@ -214,13 +248,15 @@ class CameraAwesomeBuilder extends StatefulWidget {
     AwesomeTheme? theme,
     EdgeInsets previewPadding = EdgeInsets.zero,
     Alignment previewAlignment = Alignment.center,
-    PictureInPictureConfigBuilder? pictureInPictureConfigBuilder,
   }) : this._(
-          sensorConfig: sensorConfig ??
-              SensorConfig.single(
-                sensor: Sensor.position(SensorPosition.back),
-              ),
+          sensor: sensor,
+          flashMode: flashMode,
+          zoom: zoom,
+          mirrorFrontCamera: mirrorFrontCamera,
           enablePhysicalButton: enablePhysicalButton,
+          aspectRatio: aspectRatio,
+          exifPreferences: exifPreferences,
+          enableAudio: enableAudio,
           progressIndicator: progressIndicator,
           builder: builder,
           saveConfig: saveConfig,
@@ -235,13 +271,15 @@ class CameraAwesomeBuilder extends StatefulWidget {
           theme: theme ?? AwesomeTheme(),
           previewPadding: previewPadding,
           previewAlignment: previewAlignment,
-          pictureInPictureConfigBuilder: pictureInPictureConfigBuilder,
         );
 
   /// Use this constructor when you don't want to take pictures or record videos.
   /// You can still do image analysis.
   CameraAwesomeBuilder.previewOnly({
-    SensorConfig? sensorConfig,
+    Sensors sensor = Sensors.back,
+    FlashMode flashMode = FlashMode.none,
+    double zoom = 0.0,
+    CameraAspectRatios aspectRatio = CameraAspectRatios.ratio_4_3,
     Widget? progressIndicator,
     required CameraLayoutBuilder builder,
     AwesomeFilter? filter,
@@ -252,11 +290,15 @@ class CameraAwesomeBuilder extends StatefulWidget {
     CameraPreviewFit? previewFit,
     EdgeInsets previewPadding = EdgeInsets.zero,
     Alignment previewAlignment = Alignment.center,
-    PictureInPictureConfigBuilder? pictureInPictureConfigBuilder,
   }) : this._(
-          sensorConfig: sensorConfig ??
-              SensorConfig.single(sensor: Sensor.position(SensorPosition.back)),
+          sensor: sensor,
+          flashMode: flashMode,
+          zoom: zoom,
+          mirrorFrontCamera: false,
           enablePhysicalButton: false,
+          aspectRatio: aspectRatio,
+          exifPreferences: null,
+          enableAudio: false,
           progressIndicator: progressIndicator,
           builder: builder,
           saveConfig: null,
@@ -271,7 +313,6 @@ class CameraAwesomeBuilder extends StatefulWidget {
           theme: AwesomeTheme(),
           previewPadding: previewPadding,
           previewAlignment: previewAlignment,
-          pictureInPictureConfigBuilder: pictureInPictureConfigBuilder,
         );
 
   /// Use this constructor when you only want to do image analysis.
@@ -282,16 +323,23 @@ class CameraAwesomeBuilder extends StatefulWidget {
   /// You may still show the image from the analysis by converting it to JPEG
   /// and  displaying that JPEG image.
   CameraAwesomeBuilder.analysisOnly({
-    SensorConfig? sensorConfig,
+    Sensors sensor = Sensors.back,
+    FlashMode flashMode = FlashMode.none,
+    double zoom = 0.0,
     CameraAspectRatios aspectRatio = CameraAspectRatios.ratio_4_3,
     Widget? progressIndicator,
     required CameraLayoutBuilder builder,
     required OnImageForAnalysis onImageForAnalysis,
     AnalysisConfig? imageAnalysisConfig,
   }) : this._(
-          sensorConfig: sensorConfig ??
-              SensorConfig.single(sensor: Sensor.position(SensorPosition.back)),
+          sensor: sensor,
+          flashMode: flashMode,
+          zoom: zoom,
+          mirrorFrontCamera: false,
           enablePhysicalButton: false,
+          aspectRatio: aspectRatio,
+          exifPreferences: null,
+          enableAudio: false,
           progressIndicator: progressIndicator,
           builder: builder,
           saveConfig: null,
@@ -307,7 +355,6 @@ class CameraAwesomeBuilder extends StatefulWidget {
           previewPadding: EdgeInsets.zero,
           previewAlignment: Alignment.center,
           showPreview: false,
-          pictureInPictureConfigBuilder: null,
         );
 
   @override
@@ -316,8 +363,7 @@ class CameraAwesomeBuilder extends StatefulWidget {
   }
 }
 
-class _CameraWidgetBuilder extends State<CameraAwesomeBuilder>
-    with WidgetsBindingObserver {
+class _CameraWidgetBuilder extends State<CameraAwesomeBuilder> with WidgetsBindingObserver {
   late CameraContext _cameraContext;
   final _cameraPreviewKey = GlobalKey<AwesomeCameraPreviewState>();
 
@@ -335,7 +381,7 @@ class _CameraWidgetBuilder extends State<CameraAwesomeBuilder>
 
   @override
   void didChangeDependencies() {
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    // SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     super.didChangeDependencies();
   }
 
@@ -347,8 +393,7 @@ class _CameraWidgetBuilder extends State<CameraAwesomeBuilder>
       case AppLifecycleState.inactive:
       case AppLifecycleState.paused:
       case AppLifecycleState.detached:
-        _cameraContext.state
-            .when(onVideoRecordingMode: (mode) => mode.stopRecording());
+        _cameraContext.state.when(onVideoRecordingMode: (mode) => mode.stopRecording());
         break;
     }
     super.didChangeAppLifecycleState(state);
@@ -360,18 +405,21 @@ class _CameraWidgetBuilder extends State<CameraAwesomeBuilder>
     WidgetsBinding.instance.addObserver(this);
 
     _cameraContext = CameraContext.create(
-      widget.sensorConfig,
+      SensorConfig(
+        sensor: widget.sensor,
+        flash: widget.flashMode,
+        currentZoom: widget.zoom,
+        mirrorFrontCamera: widget.mirrorFrontCamera,
+        aspectRatio: widget.aspectRatio,
+      ),
       enablePhysicalButton: widget.enablePhysicalButton,
       filter: widget.filter ?? AwesomeFilter.None,
-      initialCaptureMode: widget.saveConfig?.initialCaptureMode ??
-          (widget.showPreview
-              ? CaptureMode.preview
-              : CaptureMode.analysis_only),
+      initialCaptureMode:
+          widget.saveConfig?.initialCaptureMode ?? (widget.showPreview ? CaptureMode.preview : CaptureMode.analysis_only),
       saveConfig: widget.saveConfig,
       onImageForAnalysis: widget.onImageForAnalysis,
       analysisConfig: widget.imageAnalysisConfig,
-      exifPreferences: widget.saveConfig?.exifPreferences ??
-          ExifPreferences(saveGPSLocation: false),
+      exifPreferences: widget.exifPreferences ?? ExifPreferences(saveGPSLocation: false),
     );
 
     // Initial CameraState is always PreparingState
@@ -385,14 +433,10 @@ class _CameraWidgetBuilder extends State<CameraAwesomeBuilder>
       child: StreamBuilder<CameraState>(
         stream: _cameraContext.state$,
         builder: (context, snapshot) {
-          if (!snapshot.hasData ||
-              snapshot.data!.captureMode == null ||
-              snapshot.requireData is PreparingCameraState) {
+          if (!snapshot.hasData || snapshot.data!.captureMode == null || snapshot.requireData is PreparingCameraState) {
             return widget.progressIndicator ??
                 Center(
-                  child: Platform.isIOS
-                      ? const CupertinoActivityIndicator()
-                      : const CircularProgressIndicator(),
+                  child: Platform.isIOS ? const CupertinoActivityIndicator() : const CircularProgressIndicator(),
                 );
           }
           return Stack(
@@ -411,32 +455,26 @@ class _CameraWidgetBuilder extends State<CameraAwesomeBuilder>
                         state: snapshot.requireData,
                         padding: widget.previewPadding,
                         alignment: widget.previewAlignment,
-                        onPreviewTap: widget.onPreviewTapBuilder
-                                ?.call(snapshot.requireData) ??
+                        onPreviewTap: widget.onPreviewTapBuilder?.call(snapshot.requireData) ??
                             OnPreviewTap(
-                              onTap: (position, flutterPreviewSize,
-                                  pixelPreviewSize) {
+                              onTap: (position, flutterPreviewSize, pixelPreviewSize) {
                                 snapshot.requireData.when(
-                                  onPhotoMode: (photoState) =>
-                                      photoState.focusOnPoint(
+                                  onPhotoMode: (photoState) => photoState.focusOnPoint(
                                     flutterPosition: position,
                                     pixelPreviewSize: pixelPreviewSize,
                                     flutterPreviewSize: flutterPreviewSize,
                                   ),
-                                  onVideoMode: (videoState) =>
-                                      videoState.focusOnPoint(
+                                  onVideoMode: (videoState) => videoState.focusOnPoint(
                                     flutterPosition: position,
                                     pixelPreviewSize: pixelPreviewSize,
                                     flutterPreviewSize: flutterPreviewSize,
                                   ),
-                                  onVideoRecordingMode: (videoRecState) =>
-                                      videoRecState.focusOnPoint(
+                                  onVideoRecordingMode: (videoRecState) => videoRecState.focusOnPoint(
                                     flutterPosition: position,
                                     pixelPreviewSize: pixelPreviewSize,
                                     flutterPreviewSize: flutterPreviewSize,
                                   ),
-                                  onPreviewMode: (previewState) =>
-                                      previewState.focusOnPoint(
+                                  onPreviewMode: (previewState) => previewState.focusOnPoint(
                                     flutterPosition: position,
                                     pixelPreviewSize: pixelPreviewSize,
                                     flutterPreviewSize: flutterPreviewSize,
@@ -444,18 +482,14 @@ class _CameraWidgetBuilder extends State<CameraAwesomeBuilder>
                                 );
                               },
                             ),
-                        onPreviewScale: widget.onPreviewScaleBuilder
-                                ?.call(snapshot.requireData) ??
+                        onPreviewScale: widget.onPreviewScaleBuilder?.call(snapshot.requireData) ??
                             OnPreviewScale(
                               onScale: (scale) {
-                                snapshot.requireData.sensorConfig
-                                    .setZoom(scale);
+                                snapshot.requireData.sensorConfig.setZoom(scale);
                               },
                             ),
                         interfaceBuilder: widget.builder,
                         previewDecoratorBuilder: widget.previewDecoratorBuilder,
-                        pictureInPictureConfigBuilder:
-                            widget.pictureInPictureConfigBuilder,
                       ),
               ),
             ],

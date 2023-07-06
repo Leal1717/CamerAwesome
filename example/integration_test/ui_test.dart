@@ -17,17 +17,17 @@ void main() {
     ($) async {
       await $.pumpWidgetAndSettle(
         DrivableCamera(
-          sensors: [Sensor.position(SensorPosition.back)],
+          sensor: Sensors.back,
           saveConfig: SaveConfig.photoAndVideo(
-            photoPathBuilder: tempPath('single_photo_back.jpg'),
-            videoPathBuilder: tempPath('single_video_back.mp4'),
+            photoPathBuilder: () => tempPath('single_photo_back.jpg'),
+            videoPathBuilder: () => tempPath('single_video_back.mp4'),
           ),
         ),
       );
 
       await allowPermissionsIfNeeded($);
 
-      expect($(AwesomeAspectRatioButton), findsOneWidget);
+      expect($(#ratioButton), findsOneWidget);
       expect($(AwesomeFlashButton), findsOneWidget);
       expect(
         $(AwesomeLocationButton).$(AwesomeBouncingWidget),
@@ -46,8 +46,7 @@ void main() {
 
       // Switch to video mode
       await $.tap(find.text("VIDEO"));
-      await $.pump(const Duration(milliseconds: 3000));
-      expect($(AwesomeAspectRatioButton), findsNothing);
+      expect($(#ratioButton), findsNothing);
       expect($(AwesomeFlashButton), findsOneWidget);
       expect(
         $(AwesomeLocationButton).$(AwesomeBouncingWidget),
@@ -68,16 +67,16 @@ void main() {
     ($) async {
       await $.pumpWidgetAndSettle(
         DrivableCamera(
-          sensors: [Sensor.position(SensorPosition.back)],
+          sensor: Sensors.back,
           saveConfig: SaveConfig.photo(
-            pathBuilder: tempPath('single_photo_back.jpg'),
+            pathBuilder: () => tempPath('single_photo_back.jpg'),
           ),
         ),
       );
 
       await allowPermissionsIfNeeded($);
 
-      expect($(AwesomeAspectRatioButton), findsOneWidget);
+      expect($(#ratioButton), findsOneWidget);
       expect($(AwesomeFlashButton), findsOneWidget);
       expect(
         $(AwesomeLocationButton).$(AwesomeBouncingWidget),
@@ -97,20 +96,21 @@ void main() {
     ($) async {
       await $.pumpWidgetAndSettle(
         DrivableCamera(
-          sensors: [Sensor.position(SensorPosition.back)],
+          sensor: Sensors.back,
           saveConfig: SaveConfig.photoAndVideo(
-            photoPathBuilder: tempPath('single_photo_back.jpg'),
-            videoPathBuilder: tempPath('single_video_back.mp4'),
+            photoPathBuilder: () => tempPath('single_photo_back.jpg'),
+            videoPathBuilder: () => tempPath('single_video_back.mp4'),
             initialCaptureMode: CaptureMode.video,
           ),
         ),
       );
 
       await allowPermissionsIfNeeded($);
-      await $.pump(const Duration(milliseconds: 1000));
+
+      await $.pump(const Duration(milliseconds: 2000));
 
       // Ratio button is not visible in video mode
-      expect($(AwesomeAspectRatioButton), findsNothing);
+      expect($(#ratioButton), findsNothing);
       expect($(AwesomeFlashButton), findsOneWidget);
       expect($(AwesomeLocationButton).$(AwesomeBouncingWidget), findsNothing);
       expect($(AwesomeCameraSwitchButton), findsOneWidget);
@@ -121,12 +121,11 @@ void main() {
       expect($(AwesomeCaptureButton), findsOneWidget);
       expect($(AwesomeCameraModeSelector).$(PageView), findsOneWidget);
 
-      await $(AwesomeCaptureButton).tap(andSettle: false);
+      await $(AwesomeCaptureButton).tap();
       await allowPermissionsIfNeeded($);
-      await $.pump(const Duration(milliseconds: 2000));
 
-      // // Recording
-      expect($(AwesomeAspectRatioButton), findsNothing);
+      // Recording
+      expect($(#ratioButton), findsNothing);
       expect($(AwesomeFlashButton), findsNothing);
       expect($(AwesomeLocationButton).$(AwesomeBouncingWidget), findsNothing);
       expect($(AwesomeCameraSwitchButton), findsNothing);
@@ -136,11 +135,11 @@ void main() {
       expect($(AwesomeCaptureButton), findsOneWidget);
       expect($(AwesomeCameraModeSelector).$(PageView), findsNothing);
 
-      await $(AwesomeCaptureButton).tap(andSettle: false);
-      await $.pump(const Duration(milliseconds: 4000));
+      await $(AwesomeCaptureButton).tap();
+      await $.pump(const Duration(milliseconds: 2000));
 
       // Not recording
-      expect($(AwesomeAspectRatioButton), findsNothing);
+      expect($(#ratioButton), findsNothing);
       expect($(AwesomeFlashButton), findsOneWidget);
       expect($(AwesomeLocationButton).$(AwesomeBouncingWidget), findsNothing);
       expect($(AwesomeCameraSwitchButton), findsOneWidget);
@@ -162,9 +161,9 @@ void main() {
     ($) async {
       await $.pumpWidgetAndSettle(
         DrivableCamera(
-          sensors: [Sensor.position(SensorPosition.back)],
+          sensor: Sensors.back,
           saveConfig: SaveConfig.photo(
-            pathBuilder: tempPath('single_photo_back.jpg'),
+            pathBuilder: () => tempPath('single_photo_back.jpg'),
           ),
         ),
       );
@@ -242,12 +241,11 @@ void main() {
   patrol(
     'Location > Do NOT save if not specified',
     ($) async {
-      final sensors = [Sensor.position(SensorPosition.back)];
       await $.pumpWidgetAndSettle(
         DrivableCamera(
-          sensors: sensors,
+          sensor: Sensors.back,
           saveConfig: SaveConfig.photo(
-            pathBuilder: tempPath('single_photo_back_no_gps.jpg'),
+            pathBuilder: () => tempPath('single_photo_back_no_gps.jpg'),
           ),
         ),
       );
@@ -259,8 +257,7 @@ void main() {
       // await $.native.pressBack();
 
       await $(AwesomeCaptureButton).tap();
-      final request = await tempPath('single_photo_back_no_gps.jpg')(sensors);
-      final filePath = request.when(single: (single) => single.file!.path);
+      final filePath = await tempPath('single_photo_back_no_gps.jpg');
       final exif = await readExifFromFile(File(filePath));
       final gpsTags = exif.entries.where(
         (element) => element.key.contains('GPSDate'),
@@ -270,34 +267,24 @@ void main() {
     },
   );
 
-  // This test might not pass in Firebase Test Lab because location does not seem to be activated. It works on local device.
-  // TODO Try to use Patrol to enable location manually on the device
-
   patrol(
     'Location > Save if specified',
     ($) async {
-      final sensors = [Sensor.position(SensorPosition.back)];
       await $.pumpWidgetAndSettle(
         DrivableCamera(
-          sensors: sensors,
+          sensor: Sensors.back,
           saveConfig: SaveConfig.photo(
-            pathBuilder: tempPath('single_photo_back_gps.jpg'),
-            exifPreferences: ExifPreferences(saveGPSLocation: true),
+            pathBuilder: () => tempPath('single_photo_back_gps.jpg'),
           ),
+          exifPreferences: ExifPreferences(saveGPSLocation: true),
         ),
       );
 
       await allowPermissionsIfNeeded($);
 
-      await $(AwesomeCaptureButton).tap(andSettle: false);
-      // TODO Wait for media captured instead of a fixed duration (taking picture + retrieving locaiton might take a lot of time)
-      await $.pump(const Duration(seconds: 4));
-      final request = await tempPath('single_photo_back_gps.jpg')(sensors);
-      final filePath = request.when(single: (single) => single.file!.path);
+      await $(AwesomeCaptureButton).tap();
+      final filePath = await tempPath('single_photo_back_gps.jpg');
       final exif = await readExifFromFile(File(filePath));
-      // for (final entry in exif.entries) {
-      //   print('EXIF_PRINT > ${entry.key} : ${entry.value}');
-      // }
       final gpsTags = exif.entries.where(
         (element) => element.key.startsWith('GPS GPS'),
       );
@@ -308,12 +295,11 @@ void main() {
   patrol(
     'Focus > On camera preview tap, show focus indicator for 2 seconds',
     ($) async {
-      final sensors = [Sensor.position(SensorPosition.back)];
       await $.pumpWidgetAndSettle(
         DrivableCamera(
-          sensors: sensors,
+          sensor: Sensors.back,
           saveConfig: SaveConfig.photo(
-            pathBuilder: tempPath('single_photo_back.jpg'),
+            pathBuilder: () => tempPath('single_photo_back.jpg'),
           ),
         ),
       );
@@ -332,12 +318,11 @@ void main() {
   patrol(
     'Focus > On multiple focus, last more than 2 seconds',
     ($) async {
-      final sensors = [Sensor.position(SensorPosition.back)];
       await $.pumpWidgetAndSettle(
         DrivableCamera(
-          sensors: sensors,
+          sensor: Sensors.back,
           saveConfig: SaveConfig.photo(
-            pathBuilder: tempPath('single_photo_back.jpg'),
+            pathBuilder: () => tempPath('single_photo_back.jpg'),
           ),
         ),
       );

@@ -1,3 +1,4 @@
+import 'package:camera_app/utils/file_utils.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:flutter/material.dart';
 
@@ -22,7 +23,7 @@ class CameraPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sensor = Sensor.position(SensorPosition.back);
+    const sensor = Sensors.back;
     return Scaffold(
       body: Container(
         color: Colors.white,
@@ -30,6 +31,8 @@ class CameraPage extends StatelessWidget {
           // Setting both video recording and image analysis is an error on Android if the camera is not of LEVEL 3
           // See explanations: https://developer.android.com/training/camerax/architecture#combine-use-cases
           saveConfig: SaveConfig.photoAndVideo(
+            photoPathBuilder: () => path(CaptureMode.photo),
+            videoPathBuilder: () => path(CaptureMode.video),
             initialCaptureMode: CaptureMode.video,
           ),
           onImageForAnalysis: (image) async {
@@ -41,15 +44,12 @@ class CameraPage extends StatelessWidget {
             ),
             maxFramesPerSecond: 3,
           ),
-          sensorConfig: SensorConfig.single(
-            sensor: sensor,
-          ),
+          sensor: sensor,
           previewDecoratorBuilder: (state, _, __) {
             return Center(
               child: FutureBuilder<bool>(
                   future: CameraCharacteristics
-                      .isVideoRecordingAndImageAnalysisSupported(
-                          sensor.position!),
+                      .isVideoRecordingAndImageAnalysisSupported(sensor),
                   builder: (_, snapshot) {
                     print("___---___--- received result ${snapshot.data}");
                     if (snapshot.data == null) {
@@ -58,7 +58,7 @@ class CameraPage extends StatelessWidget {
                     return Padding(
                       padding: const EdgeInsets.all(20),
                       child: Text(
-                        'Video recording AND image analysis at the same time ${snapshot.data! ? 'IS' : 'IS NOT'} supported on ${sensor.position?.name} sensor',
+                        'Video recording AND image analysis at the same time ${snapshot.data! ? 'IS' : 'IS NOT'} supported on ${sensor.name} sensor',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,

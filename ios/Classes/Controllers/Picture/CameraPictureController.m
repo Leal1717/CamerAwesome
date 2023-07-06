@@ -14,20 +14,20 @@
 }
 
 - (instancetype)initWithPath:(NSString *)path
-                     orientation:(NSInteger)orientation
-                  sensorPosition:(PigeonSensorPosition)sensorPosition
-                 saveGPSLocation:(bool)saveGPSLocation
-               mirrorFrontCamera:(bool)mirrorFrontCamera
-                     aspectRatio:(AspectRatio)aspectRatio
-                      completion:(nonnull void (^)(NSNumber * _Nullable, FlutterError * _Nullable))completion
-                        callback:(OnPictureTaken)callback {
+                 orientation:(NSInteger)orientation
+                      sensor:(CameraSensor)sensor
+             saveGPSLocation:(bool)saveGPSLocation
+           mirrorFrontCamera:(bool)mirrorFrontCamera
+                 aspectRatio:(AspectRatio)aspectRatio
+                  completion:(nonnull void (^)(NSNumber * _Nullable, FlutterError * _Nullable))completion
+                    callback:(OnPictureTaken)callback {
   self = [super init];
   NSAssert(self, @"super init cannot be nil");
   _path = path;
   _completion = completion;
   _orientation = orientation;
   _completionBlock = callback;
-  _sensorPosition = sensorPosition;
+  _sensor = sensor;
   _saveGPSLocation = saveGPSLocation;
   _aspectRatioType = aspectRatio;
   _mirrorFrontCamera = mirrorFrontCamera;
@@ -188,15 +188,15 @@ previewPhotoSampleBuffer:(CMSampleBufferRef)previewPhotoSampleBuffer
 - (UIImageOrientation)getJpegOrientation {
   switch (_orientation) {
     case UIDeviceOrientationPortrait:
-      if (self.sensorPosition == PigeonSensorPositionFront && _mirrorFrontCamera) {
+      if (_sensor == Front && _mirrorFrontCamera) {
         return UIImageOrientationLeftMirrored;
       } else {
         return UIImageOrientationRight;
       }
     case UIDeviceOrientationLandscapeRight:
-      return (self.sensorPosition == PigeonSensorPositionBack) ? UIImageOrientationUp : UIImageOrientationDown;
+      return (_sensor == Back) ? UIImageOrientationUp : UIImageOrientationDown;
     case UIDeviceOrientationLandscapeLeft:
-      return (self.sensorPosition == PigeonSensorPositionBack) ? UIImageOrientationDown : UIImageOrientationUp;
+      return (_sensor == Back) ? UIImageOrientationDown : UIImageOrientationUp;
     default:
       return UIImageOrientationLeft;
   }

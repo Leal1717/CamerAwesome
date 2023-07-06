@@ -1,5 +1,8 @@
-import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:camerawesome/src/orchestrator/camera_context.dart';
+import 'package:camerawesome/src/orchestrator/states/camera_state.dart';
+import 'package:camerawesome/src/orchestrator/states/photo_camera_state.dart';
+import 'package:camerawesome/src/orchestrator/states/preview_camera_state.dart';
+import 'package:camerawesome/src/orchestrator/states/video_camera_state.dart';
 
 enum CaptureMode {
   photo,
@@ -16,7 +19,7 @@ enum CaptureMode {
     } else if (this == CaptureMode.preview) {
       return PreviewCameraState(cameraContext: cameraContext);
     } else if (this == CaptureMode.analysis_only) {
-      return AnalysisCameraState(cameraContext: cameraContext);
+      return PreviewCameraState(cameraContext: cameraContext);
     }
     throw "State not recognized";
   }

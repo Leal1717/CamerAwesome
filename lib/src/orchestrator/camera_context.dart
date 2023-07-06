@@ -6,6 +6,7 @@ import 'dart:ui';
 
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:camerawesome/pigeon.dart';
+import 'package:camerawesome/src/orchestrator/models/sensor_type.dart';
 import 'package:rxdart/rxdart.dart';
 
 /// This class handle the current state of the camera
@@ -51,7 +52,6 @@ class CameraContext {
   Stream<MediaCapture?> get captureState$ => mediaCaptureController.stream;
 
   MediaCapture? get captureState => mediaCaptureController.stream.value;
-
   CameraState get state => stateController.value;
 
   /// The config associated with a [Sensors].
@@ -104,9 +104,7 @@ class CameraContext {
         );
 
   changeState(CameraState newState) async {
-    final currentZoom = state.sensorConfig.zoom;
     state.dispose();
-
     if (state.captureMode != newState.captureMode) {
       // This should not be done multiple times for the same CaptureMode or it
       // generates problems (especially when recording a video)
@@ -122,7 +120,6 @@ class CameraContext {
       filterController.add(AwesomeFilter.None);
       filterSelectorOpened.add(false);
     }
-    newState.sensorConfig.setZoom(currentZoom);
   }
 
   Future<void> toggleFilterSelector() async {
@@ -141,7 +138,8 @@ class CameraContext {
       sensorConfigController.value.dispose();
     }
     await CamerawesomePlugin.setSensor(
-      newConfig.sensors,
+      newConfig.sensor,
+      deviceId: newConfig.captureDeviceId,
     );
   }
 
@@ -201,16 +199,16 @@ class CameraContext {
     }
   }
 
-  Future<PreviewSize> previewSize(int index) {
-    return CamerawesomePlugin.getEffectivPreviewSize(index);
+  Future<PreviewSize> previewSize() {
+    return CamerawesomePlugin.getEffectivPreviewSize();
   }
 
   Future<SensorDeviceData> getSensors() {
     return CamerawesomePlugin.getSensors();
   }
 
-  Future<int?> previewTextureId(int cameraPosition) {
-    return CamerawesomePlugin.getPreviewTexture(cameraPosition)
+  Future<int?> textureId() {
+    return CamerawesomePlugin.getPreviewTexture()
         .then(((value) => value?.toInt()));
   }
 }

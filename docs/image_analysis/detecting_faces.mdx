@@ -31,10 +31,8 @@ MLKit is now ready, let's setup CamerAwesome.
 CameraAwesomeBuilder.previewOnly(
   // 2.
   previewFit: CameraPreviewFit.contain,
-  sensorConfig: SensorConfig.single(
-    sensor: Sensor.position(SensorPosition.front),
-    aspectRatio: CameraAspectRatios.ratio_1_1,
-  ),
+  aspectRatio: CameraAspectRatios.ratio_1_1,
+  sensor: Sensors.front,
   // 3.
   onImageForAnalysis: (img) => _analyzeImage(img),
   // 4.

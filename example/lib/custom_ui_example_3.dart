@@ -1,4 +1,5 @@
 import 'package:better_open_file/better_open_file.dart';
+import 'package:camera_app/utils/file_utils.dart';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:flutter/material.dart';
 
@@ -21,7 +22,9 @@ class CustomUiExample3 extends StatelessWidget {
                 RecordVideoUI(state, recording: true),
           );
         },
-        saveConfig: SaveConfig.video(),
+        saveConfig: SaveConfig.video(
+          pathBuilder: () => path(CaptureMode.video),
+        ),
       ),
     );
   }
@@ -64,10 +67,7 @@ class RecordVideoUI extends StatelessWidget {
                     child: CustomMediaPreview(
                       mediaCapture: snapshot.data,
                       onMediaTap: (mediaCapture) {
-                        OpenFile.open(
-                          mediaCapture.captureRequest
-                              .when(single: (single) => single.file?.path),
-                        );
+                        OpenFile.open(mediaCapture.filePath);
                       },
                     ),
                   );

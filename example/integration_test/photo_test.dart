@@ -13,24 +13,22 @@ void main() {
 }
 
 void photoTests() {
-  for (var sensor in SensorPosition.values) {
+  for (var sensor in Sensors.values) {
     patrol(
       'Take pictures > single picture ${sensor.name} camera',
       ($) async {
-        final sensors = [Sensor.position(sensor)];
         await $.pumpWidgetAndSettle(
           DrivableCamera(
-            sensors: sensors,
+            sensor: sensor,
             saveConfig: SaveConfig.photo(
-              pathBuilder: tempPath('single_photo_back.jpg'),
+              pathBuilder: () => tempPath('single_photo_back.jpg'),
             ),
           ),
         );
 
         await allowPermissionsIfNeeded($);
 
-        final request = await tempPath('single_photo_back.jpg')(sensors);
-        final filePath = request.when(single: (single) => single.file!.path);
+        final filePath = await tempPath('single_photo_back.jpg');
         await $(AwesomeCaptureButton).tap();
 
         expect(File(filePath).existsSync(), true);
@@ -44,16 +42,15 @@ void photoTests() {
       ($) async {
         int idxPicture = 0;
         const picturesToTake = 3;
-        final sensors = [Sensor.position(sensor)];
         await $.pumpWidgetAndSettle(
           DrivableCamera(
-            sensors: sensors,
+            sensor: sensor,
             saveConfig: SaveConfig.photo(
-              pathBuilder: (sensors) async {
-                final request = await tempPath(
-                    'multiple_photo_${sensor.name}_$idxPicture.jpg')(sensors);
+              pathBuilder: () async {
+                final path = await tempPath(
+                    'multiple_photo_${sensor.name}_$idxPicture.jpg');
                 idxPicture++;
-                return request;
+                return path;
               },
             ),
           ),
@@ -62,9 +59,8 @@ void photoTests() {
         await allowPermissionsIfNeeded($);
 
         for (int i = 0; i < picturesToTake; i++) {
-          final request = await tempPath(
-              'multiple_photo_${sensor.name}_$idxPicture.jpg')(sensors);
-          final filePath = request.when(single: (single) => single.file!.path);
+          final filePath =
+              await tempPath('multiple_photo_${sensor.name}_$idxPicture.jpg');
           await $(AwesomeCaptureButton).tap();
           expect(File(filePath).existsSync(), true);
           // File size should be quite high (at least more than 100)
@@ -75,25 +71,23 @@ void photoTests() {
   }
 
   patrol(
-    'Take pictures > One with ${SensorPosition.back} then one with ${SensorPosition.front}',
+    'Take pictures > One with ${Sensors.back} then one with ${Sensors.front}',
     ($) async {
       int idxSensor = 0;
-      final switchingSensors = [
-        SensorPosition.back,
-        SensorPosition.front,
-        SensorPosition.back,
+      final sensors = [
+        Sensors.back,
+        Sensors.front,
+        Sensors.back,
       ];
-      final initialSensors = [Sensor.position(SensorPosition.back)];
       await $.pumpWidgetAndSettle(
         DrivableCamera(
-          sensors: initialSensors,
+          sensor: Sensors.back,
           saveConfig: SaveConfig.photo(
-            pathBuilder: (sensors) async {
-              final request = await tempPath(
-                      'switch_sensor_photo_${idxSensor}_${switchingSensors[idxSensor].name}.jpg')(
-                  sensors);
+            pathBuilder: () async {
+              final path = await tempPath(
+                  'switch_sensor_photo_${idxSensor}_${sensors[idxSensor].name}.jpg');
               idxSensor++;
-              return request;
+              return path;
             },
           ),
         ),
@@ -101,12 +95,11 @@ void photoTests() {
 
       await allowPermissionsIfNeeded($);
 
-      for (int i = 0; i < switchingSensors.length; i++) {
-        final request = await tempPath(
-                'switch_sensor_photo_${idxSensor}_${switchingSensors[idxSensor].name}.jpg')(
-            initialSensors);
-        final filePath = request.when(single: (single) => single.file!.path);
-        if (i > 0 && switchingSensors[i - 1] != switchingSensors[i]) {
+      for (int i = 0; i < sensors.length; i++) {
+        final filePath = await tempPath(
+            'switch_sensor_photo_${idxSensor}_${sensors[idxSensor].name}.jpg');
+
+        if (i > 0 && sensors[i - 1] != sensors[i]) {
           await $.tester.pumpAndSettle();
           final switchButton = find.byType(AwesomeCameraSwitchButton);
           await $.tester.tap(switchButton, warnIfMissed: false);

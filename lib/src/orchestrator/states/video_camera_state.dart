@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:camerawesome/camerawesome_plugin.dart';
 import 'package:camerawesome/pigeon.dart';
 import 'package:camerawesome/src/orchestrator/camera_context.dart';
-import 'package:collection/collection.dart';
 
 /// When Camera is in Video mode
 class VideoCameraState extends CameraState {
@@ -18,7 +17,7 @@ class VideoCameraState extends CameraState {
         filePathBuilder: cameraContext.saveConfig!.videoPathBuilder!,
       );
 
-  final CaptureRequestBuilder filePathBuilder;
+  final FilePathBuilder filePathBuilder;
 
   @override
   void setState(CaptureMode captureMode) {
@@ -33,19 +32,17 @@ class VideoCameraState extends CameraState {
 
   /// You can listen to [cameraSetup.mediaCaptureStream] to get updates
   /// of the photo capture (capturing, success/failure)
-  Future<CaptureRequest> startRecording() async {
-    CaptureRequest captureRequest =
-        await filePathBuilder(sensorConfig.sensors.whereNotNull().toList());
+  Future<String> startRecording() async {
+    String filePath = await filePathBuilder();
     _mediaCapture = MediaCapture.capturing(
-        captureRequest: captureRequest, videoState: VideoState.started);
+        filePath: filePath, videoState: VideoState.started);
     try {
-      await CamerawesomePlugin.recordVideo(captureRequest);
+      await CamerawesomePlugin.recordVideo(filePath);
     } on Exception catch (e) {
-      _mediaCapture =
-          MediaCapture.failure(captureRequest: captureRequest, exception: e);
+      _mediaCapture = MediaCapture.failure(filePath: filePath, exception: e);
     }
     cameraContext.changeState(VideoRecordingCameraState.from(cameraContext));
-    return captureRequest;
+    return filePath;
   }
 
   /// If the video recording should [enableAudio].
