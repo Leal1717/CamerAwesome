@@ -97,6 +97,8 @@ def compatibleVersion(prop, fallbackVersion, min = null, max = null) {
 }
 
 android {
+    namespace com.apparence.camerawesome
+    
     compileSdkVersion compatibleVersion('compileSdkVersion', DEFAULT_COMPILE_SDK_VERSION).toInteger()
 
     defaultConfig {
